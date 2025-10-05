@@ -173,7 +173,8 @@ func (c *Client) GetMeasurementResults(measurementID int) ([]TracerouteResult, e
 }
 
 // WaitForMeasurement polls the measurement status until it completes or times out
-func (c *Client) WaitForMeasurement(measurementID int, timeout time.Duration) error {
+// It uses a hybrid approach: checks both result completeness and status changes
+func (c *Client) WaitForMeasurement(measurementID int, expectedProbes int, timeout time.Duration) error {
 	ticker := time.NewTicker(3 * time.Second)
 	defer ticker.Stop()
 
@@ -187,14 +188,26 @@ func (c *Client) WaitForMeasurement(measurementID int, timeout time.Duration) er
 				return fmt.Errorf("failed to get measurement status: %w", err)
 			}
 
-			// Check if measurement is complete
-			// Status ID: 1=Specified, 2=Scheduled, 4=Ongoing, 5=Stopped, 6=Forced to stop, 7=No suitable probes
-			if status.Status.ID == 5 || status.Status.ID == 6 {
+			// Fast path: Check if all probes have reported results
+			// This allows early completion without waiting for status to change from Ongoing to Stopped
+			results, err := c.GetMeasurementResults(measurementID)
+			if err == nil && len(results) == expectedProbes {
+				// All probes have reported, measurement is effectively complete
 				return nil
 			}
 
-			if status.Status.ID == 7 {
+			// Slow path: Check official status changes
+			// Status ID: 0=Specified, 1=Scheduled, 2=Ongoing, 4=Stopped, 5=Forced to stop, 6=No suitable probes, 7=Failed, 8=Archived
+			if status.Status.ID == 4 || status.Status.ID == 5 {
+				return nil
+			}
+
+			if status.Status.ID == 6 {
 				return fmt.Errorf("measurement failed: no suitable probes")
+			}
+
+			if status.Status.ID == 7 {
+				return fmt.Errorf("measurement failed")
 			}
 
 		case <-timeoutCh:
