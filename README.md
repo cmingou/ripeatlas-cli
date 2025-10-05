@@ -28,11 +28,37 @@ go build -o ripeatlas
 
 ## Configuration
 
-Create an `env.key` file in the project directory:
+The tool requires a RIPE Atlas API key. You can provide it in two ways:
 
+### Option 1: Environment Variable (Recommended)
+
+```bash
+export RIPE_ATLAS_API="your-api-key-here"
+```
+
+### Option 2: Configuration File
+
+Create a `~/.env.key` file in your home directory:
+
+```bash
+echo 'RIPE_ATLAS_API="your-api-key-here"' > ~/.env.key
+```
+
+Or use the legacy format:
 ```
 RIPE_ATLAS_KEY="your-api-key-here"
 ```
+
+### Option 3: Custom Config File
+
+```bash
+./ripeatlas traceroute --config /path/to/config --asns 5384,7713 --target 1.2.3.4
+```
+
+**Priority Order:**
+1. Environment variable `RIPE_ATLAS_API`
+2. `~/.env.key` file
+3. Custom config file (via `--config` flag)
 
 ## Usage
 
@@ -69,7 +95,7 @@ This will identify ASNs that appear in at least 85% of the traceroute paths.
 - `--asns`: Comma-separated list of ASNs (required)
 - `--target`: Target IP address or AWS region (e.g., `aws_us-west-2`) (required)
 - `--threshold`: Percentage threshold for common ASN detection (default: 0.8 = 80%)
-- `--config`: Path to configuration file (default: `env.key`)
+- `--config`: Path to custom configuration file (optional)
 
 ## How It Works
 
@@ -159,7 +185,7 @@ If a measurement takes longer than 5 minutes:
 
 ### API errors
 
-- Verify your API key in `env.key`
+- Verify your API key is set correctly (via `RIPE_ATLAS_API` environment variable or `~/.env.key` file)
 - Check RIPE Atlas service status
 - Ensure you haven't exceeded quotas
 

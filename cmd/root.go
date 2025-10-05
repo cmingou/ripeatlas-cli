@@ -33,12 +33,12 @@ func Execute() error {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "env.key", "config file (default is ./env.key)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (optional, default checks RIPE_ATLAS_API env or ~/.env.key)")
 }
 
 func initConfig() {
 	var err error
-	cfg, err = config.Load(cfgFile)
+	cfg, err = config.LoadWithPriority(cfgFile)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
 		os.Exit(1)
