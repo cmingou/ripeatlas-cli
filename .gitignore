@@ -18,6 +18,9 @@ go.work
 env.key
 *.env
 
+# Development notes
+CLAUDE.md
+
 # IDE
 .vscode/
 .idea/
