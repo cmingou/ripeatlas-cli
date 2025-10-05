@@ -14,21 +14,21 @@ const (
 
 // Report represents a complete analysis report
 type Report struct {
-	MeasurementID    int
-	Target           string
-	CreatedAt        time.Time
-	Duration         time.Duration
-	RequestedASNs    []int
-	ASNsWithProbes   []int
+	MeasurementID     int
+	Target            string
+	CreatedAt         time.Time
+	Duration          time.Duration
+	RequestedASNs     []int
+	ASNsWithProbes    []int
 	ASNsWithoutProbes []int
-	Allocations      []ProbeAllocation
-	CommonASNs       []ASNInfo
-	Threshold        float64
-	TotalProbes      int
-	UniquePaths      int
-	AvgHops          float64
-	MaxHops          int
-	IncompletePaths  int
+	Allocations       []ProbeAllocation
+	CommonASNs        []ASNInfo
+	Threshold         float64
+	TotalProbes       int
+	UniquePaths       int
+	AvgHops           float64
+	MaxHops           int
+	IncompletePaths   int
 }
 
 // GenerateReport creates a formatted text report

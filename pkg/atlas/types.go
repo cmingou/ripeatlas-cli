@@ -2,15 +2,15 @@ package atlas
 
 // Probe represents a RIPE Atlas probe
 type Probe struct {
-	ID           int     `json:"id"`
-	AddressV4    string  `json:"address_v4"`
-	AddressV6    string  `json:"address_v6"`
-	ASNV4        int     `json:"asn_v4"`
-	ASNV6        int     `json:"asn_v6"`
-	CountryCode  string  `json:"country_code"`
-	Description  string  `json:"description"`
-	Status       Status  `json:"status"`
-	IsPublic     bool    `json:"is_public"`
+	ID          int    `json:"id"`
+	AddressV4   string `json:"address_v4"`
+	AddressV6   string `json:"address_v6"`
+	ASNV4       int    `json:"asn_v4"`
+	ASNV6       int    `json:"asn_v6"`
+	CountryCode string `json:"country_code"`
+	Description string `json:"description"`
+	Status      Status `json:"status"`
+	IsPublic    bool   `json:"is_public"`
 }
 
 // Status represents probe status
@@ -30,16 +30,16 @@ type ProbeResponse struct {
 
 // MeasurementDefinition defines a traceroute measurement
 type MeasurementDefinition struct {
-	Type               string `json:"type"`
-	AF                 int    `json:"af"`
-	Target             string `json:"target"`
-	Description        string `json:"description"`
-	Protocol           string `json:"protocol"`
-	Packets            int    `json:"packets"`
-	Size               int    `json:"size"`
-	MaxHops            int    `json:"max_hops"`
-	Paris              int    `json:"paris"`
-	ResponseTimeout    int    `json:"response_timeout"`
+	Type            string `json:"type"`
+	AF              int    `json:"af"`
+	Target          string `json:"target"`
+	Description     string `json:"description"`
+	Protocol        string `json:"protocol"`
+	Packets         int    `json:"packets"`
+	Size            int    `json:"size"`
+	MaxHops         int    `json:"max_hops"`
+	Paris           int    `json:"paris"`
+	ResponseTimeout int    `json:"response_timeout"`
 }
 
 // ProbeSet defines which probes to use
@@ -63,13 +63,13 @@ type MeasurementResponse struct {
 
 // MeasurementStatus represents the status of a measurement
 type MeasurementStatus struct {
-	ID             int       `json:"id"`
-	Status         StatusInfo `json:"status"`
-	ProbesScheduled int      `json:"probes_scheduled"`
-	ProbesRequested int      `json:"probes_requested"`
-	ParticipantCount int     `json:"participant_count"`
-	StartTime      int64     `json:"start_time"`
-	StopTime       int64     `json:"stop_time"`
+	ID               int        `json:"id"`
+	Status           StatusInfo `json:"status"`
+	ProbesScheduled  int        `json:"probes_scheduled"`
+	ProbesRequested  int        `json:"probes_requested"`
+	ParticipantCount int        `json:"participant_count"`
+	StartTime        int64      `json:"start_time"`
+	StopTime         int64      `json:"stop_time"`
 }
 
 // StatusInfo represents detailed status information
@@ -80,14 +80,14 @@ type StatusInfo struct {
 
 // TracerouteResult represents a single traceroute measurement result
 type TracerouteResult struct {
-	ProbeID    int         `json:"prb_id"`
-	MsmID      int         `json:"msm_id"`
-	Timestamp  int64       `json:"timestamp"`
-	From       string      `json:"from"`
-	Type       string      `json:"type"`
-	Result     []HopResult `json:"result"`
-	DstAddr    string      `json:"dst_addr"`
-	SrcAddr    string      `json:"src_addr"`
+	ProbeID   int         `json:"prb_id"`
+	MsmID     int         `json:"msm_id"`
+	Timestamp int64       `json:"timestamp"`
+	From      string      `json:"from"`
+	Type      string      `json:"type"`
+	Result    []HopResult `json:"result"`
+	DstAddr   string      `json:"dst_addr"`
+	SrcAddr   string      `json:"src_addr"`
 }
 
 // HopResult represents a single hop in a traceroute
@@ -118,8 +118,8 @@ type ASNInfo struct {
 
 // ProbeAllocation tracks probe distribution per ASN
 type ProbeAllocation struct {
-	ASN        int
-	Available  int
-	Allocated  int
-	ProbeIDs   []int
+	ASN       int
+	Available int
+	Allocated int
+	ProbeIDs  []int
 }
