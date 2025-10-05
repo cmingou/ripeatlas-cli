@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cmou/ripeatlas/internal/config"
+	"github.com/cmingou/ripeatlas-cli/internal/config"
 	"github.com/spf13/cobra"
 )
 

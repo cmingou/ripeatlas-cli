@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cmou/ripeatlas/cmd"
+	"github.com/cmingou/ripeatlas-cli/cmd"
 )
 
 func main() {

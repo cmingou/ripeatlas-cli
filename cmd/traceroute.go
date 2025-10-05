@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cmou/ripeatlas/pkg/analyzer"
-	"github.com/cmou/ripeatlas/pkg/atlas"
-	"github.com/cmou/ripeatlas/pkg/aws"
+	"github.com/cmingou/ripeatlas-cli/pkg/analyzer"
+	"github.com/cmingou/ripeatlas-cli/pkg/atlas"
+	"github.com/cmingou/ripeatlas-cli/pkg/aws"
 	"github.com/spf13/cobra"
 )
 
@@ -175,7 +175,7 @@ func runTraceroute(cmd *cobra.Command, args []string) error {
 			waitStartTime = time.Now()
 		}
 
-		err := client.WaitForMeasurement(measurementID, 3*time.Second)
+		err := client.WaitForMeasurement(measurementID, len(probeIDs), 3*time.Second)
 		if err == nil {
 			break
 		}

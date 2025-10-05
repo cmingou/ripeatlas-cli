@@ -3,16 +3,28 @@ package analyzer
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
-	"strings"
 	"time"
 
-	"github.com/cmou/ripeatlas/pkg/atlas"
+	"github.com/cmingou/ripeatlas-cli/pkg/atlas"
 )
 
 // ASNLookupCache caches ASN lookups to avoid repeated API calls
 var ASNLookupCache = make(map[string]int)
+
+// ASNNameCache caches ASN names to avoid repeated API calls
+var ASNNameCache = make(map[int]string)
+
+// Semaphore for RIPEstat API rate limiting (max 8 concurrent requests)
+var ripestatSemaphore = make(chan struct{}, 8)
+
+// HTTP/2 client for RIPEstat API
+var ripestatClient = &http.Client{
+	Timeout: 10 * time.Second,
+	Transport: &http.Transport{
+		ForceAttemptHTTP2: true, // Enable HTTP/2
+	},
+}
 
 // AnalyzeCommonASNs analyzes traceroute results to find common ASNs
 func AnalyzeCommonASNs(results []atlas.TracerouteResult, threshold float64) ([]atlas.ASNInfo, error) {
@@ -43,8 +55,8 @@ func AnalyzeCommonASNs(results []atlas.TracerouteResult, threshold float64) ([]a
 				if !seenASNs[asn] {
 					if _, exists := asnStats[asn]; !exists {
 						asnStats[asn] = &asnTracker{
-							asn:         asn,
-							occurrences: 0,
+							asn:          asn,
+							occurrences:  0,
 							hopPositions: make([]int, 0),
 						}
 					}
@@ -110,42 +122,57 @@ type asnTracker struct {
 	hopPositions []int
 }
 
-// lookupASN looks up the ASN for a given IP address using a WHOIS-like service
+// RIPEstatResponse represents the response from RIPEstat API
+type RIPEstatResponse struct {
+	Data struct {
+		ASNs []struct {
+			ASN    int    `json:"asn"`
+			Holder string `json:"holder"`
+		} `json:"asns"`
+	} `json:"data"`
+}
+
+// lookupASN looks up the ASN for a given IP address using RIPEstat API
 func lookupASN(ip string) (int, error) {
 	// Check cache first
 	if asn, exists := ASNLookupCache[ip]; exists {
 		return asn, nil
 	}
 
-	// Use Team Cymru's IP to ASN lookup service
-	client := &http.Client{
-		Timeout: 5 * time.Second,
-	}
+	// Acquire semaphore to respect RIPEstat API rate limit (max 8 concurrent)
+	ripestatSemaphore <- struct{}{}
+	defer func() { <-ripestatSemaphore }()
 
-	url := fmt.Sprintf("https://api.hackertarget.com/aslookup/?q=%s", ip)
-	resp, err := client.Get(url)
+	url := fmt.Sprintf("https://stat.ripe.net/data/prefix-overview/data.json?resource=%s", ip)
+	resp, err := ripestatClient.Get(url)
 	if err != nil {
 		return 0, fmt.Errorf("failed to lookup ASN: %w", err)
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return 0, err
+	if resp.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("RIPEstat API returned status %d", resp.StatusCode)
 	}
 
-	// Parse response (format: "AS#### Organization Name")
-	result := string(body)
-	if strings.Contains(result, "error") || strings.Contains(result, "API count exceeded") {
-		return 0, fmt.Errorf("ASN lookup failed")
+	var result RIPEstatResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return 0, fmt.Errorf("failed to decode RIPEstat response: %w", err)
 	}
 
-	var asn int
-	fmt.Sscanf(result, "AS%d", &asn)
+	// Extract ASN from response
+	if len(result.Data.ASNs) == 0 {
+		return 0, fmt.Errorf("no ASN found for IP %s", ip)
+	}
 
-	// Cache the result
+	asn := result.Data.ASNs[0].ASN
+	holder := result.Data.ASNs[0].Holder
+
+	// Cache both ASN and name
 	if asn > 0 {
 		ASNLookupCache[ip] = asn
+		if holder != "" {
+			ASNNameCache[asn] = holder
+		}
 	}
 
 	return asn, nil
@@ -153,12 +180,18 @@ func lookupASN(ip string) (int, error) {
 
 // lookupASNName looks up the name/organization for an ASN
 func lookupASNName(asn int) (string, error) {
-	client := &http.Client{
-		Timeout: 5 * time.Second,
+	// Check cache first (may have been populated by lookupASN)
+	if name, exists := ASNNameCache[asn]; exists {
+		return name, nil
 	}
 
-	url := fmt.Sprintf("https://api.bgpview.io/asn/%d", asn)
-	resp, err := client.Get(url)
+	// If not in cache, query RIPEstat API
+	// We use a dummy IP query with ASN notation
+	ripestatSemaphore <- struct{}{}
+	defer func() { <-ripestatSemaphore }()
+
+	url := fmt.Sprintf("https://stat.ripe.net/data/as-overview/data.json?resource=AS%d", asn)
+	resp, err := ripestatClient.Get(url)
 	if err != nil {
 		return fmt.Sprintf("AS%d", asn), nil
 	}
@@ -166,8 +199,7 @@ func lookupASNName(asn int) (string, error) {
 
 	var result struct {
 		Data struct {
-			Name        string `json:"name"`
-			Description string `json:"description_short"`
+			Holder string `json:"holder"`
 		} `json:"data"`
 	}
 
@@ -175,12 +207,9 @@ func lookupASNName(asn int) (string, error) {
 		return fmt.Sprintf("AS%d", asn), nil
 	}
 
-	if result.Data.Name != "" {
-		return result.Data.Name, nil
-	}
-
-	if result.Data.Description != "" {
-		return result.Data.Description, nil
+	if result.Data.Holder != "" {
+		ASNNameCache[asn] = result.Data.Holder
+		return result.Data.Holder, nil
 	}
 
 	return fmt.Sprintf("AS%d", asn), nil
